@@ -4,10 +4,8 @@ from io import StringIO
 from openpyxl.drawing.image import Image
 import matplotlib.pyplot as plt
 import json
-import pytz
 
 TO_HUMAN_INFO = {"localhostservice": "АРМ", "emiasdb": "ФОРМА ЛОГИН/СНИЛС"}
-TIMEZONE = pytz.timezone('Europe/Moscow')
 
 
 def create_df():
@@ -21,10 +19,10 @@ def create_df():
                        names=["userid", "emiaslogin", "info", "created_at"])
 
 
-def create_excel(df):
+def create_excel(dataframe):
     filename = './output.xlsx'
     with pd.ExcelWriter(filename) as writer:
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
+        dataframe.to_excel(writer, index=False, sheet_name='Sheet1')
         worksheet = writer.sheets['Sheet1']
         for column_cells in worksheet.columns:
             for cell in column_cells:
@@ -36,22 +34,22 @@ def create_excel(df):
         worksheet.add_image(image, "F1")
 
 
-def get_data(df):
+def get_data(dataframe):
     auth_type = {"emiasdb": 0, "localhostservice": 0}
 
-    for row in df.itertuples():
+    for row in dataframe.itertuples():
         auth_type[json.loads(row.info)["authsource"]] += 1
     return auth_type
 
 
-def create_graph(data):
-    total = sum(data.values())
+def create_graph(service_data):
+    total = sum(service_data.values())
 
-    percentages = [value / total * 100 for value in data.values()]
-    keys = [TO_HUMAN_INFO[key] for key in data.keys()]
+    percentages = [value / total * 100 for value in service_data.values()]
+    keys = [TO_HUMAN_INFO[key] for key in service_data.keys()]
     plt.bar(keys, percentages)
-    plt.bar_label(plt.bar(keys, data.values()),
-                  labels=[f'{p:.1f}% ({v})' for p, v in zip(percentages, data.values())])
+    plt.bar_label(plt.bar(keys, service_data.values()),
+                  labels=[f'{p:.1f}% ({v})' for p, v in zip(percentages, service_data.values())])
 
     plt.title('Процентное соотношение')
 
