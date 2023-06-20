@@ -1,64 +1,117 @@
+import os
+from dateutil.parser import parse
 import pandas as pd
+import psycopg2
 from openpyxl.styles import Alignment
 from io import StringIO
 from openpyxl.drawing.image import Image
 import matplotlib.pyplot as plt
+from config import Config
 import json
 
-TO_HUMAN_INFO = {"localhostservice": "АРМ", "emiasdb": "ФОРМА ЛОГИН/СНИЛС"}
 
-
-def create_df():
-    dump_file = './survey.psql'
-
-    with open(dump_file, 'r') as file:
+def create_df_from_file():
+    with open(Config.Const.dump_file, "r") as file:
         dump_content = file.read()
-    cleaned_content = '\n'.join(line for line in dump_content.splitlines() if line and line[0].isdigit())
+    cleaned_content = "\n".join(
+        line for line in dump_content.splitlines() if line and line[0].isdigit()
+    )
 
-    return pd.read_csv(StringIO(cleaned_content), sep="\t", usecols=[1, 2, 4, 5],
-                       names=["userid", "emiaslogin", "info", "created_at"])
+    df = pd.read_csv(
+        StringIO(cleaned_content),
+        sep="\t",
+        usecols=[1, 2, 4, 5],
+        names=[
+            Config.Const.user_id,
+            Config.Const.login,
+            Config.Const.auth_type,
+            Config.Const.viewing_time,
+        ],
+    )
+
+    return df
+
+
+def create_df_from_db():
+    with psycopg2.connect(
+        host=Config.DataBase.HOST,
+        user=Config.DataBase.USERNAME,
+        password=Config.DataBase.PASSWORD,
+        dbname=Config.DataBase.DB,
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT userid, emiaslogin, info, created_at FROM security_survey;"
+            )
+            rows = cur.fetchall()
+            df = pd.DataFrame(
+                rows,
+                columns=[
+                    Config.Const.user_id,
+                    Config.Const.login,
+                    Config.Const.auth_type,
+                    Config.Const.viewing_time,
+                ],
+            )
+            df[Config.Const.viewing_time] = df[Config.Const.viewing_time].astype(str)
+    return df
 
 
 def create_excel(dataframe):
-    filename = './output.xlsx'
-    with pd.ExcelWriter(filename) as writer:
-        dataframe.to_excel(writer, index=False, sheet_name='Sheet1')
-        worksheet = writer.sheets['Sheet1']
+    with pd.ExcelWriter(Config.Const.output_excel_file) as writer:
+        dataframe.to_excel(writer, index=False, sheet_name="Sheet1")
+        worksheet = writer.sheets["Sheet1"]
         for column_cells in worksheet.columns:
             for cell in column_cells:
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-            length = max(len(str(cell.value)) for cell in column_cells)
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            length = (
+                max(len(str(cell.value)) for cell in column_cells) + Config.Const.offset
+            )
             worksheet.column_dimensions[column_cells[0].column_letter].width = length
 
-        image = Image("./plot.png")
+        image = Image(Config.Const.output_png_file)
         worksheet.add_image(image, "F1")
 
 
-def get_data(dataframe):
-    auth_type = {"emiasdb": 0, "localhostservice": 0}
+def get_statistics_and_change_df(dataframe):
+    to_human_info = {"localhostservice": "АРМ", "emiasdb": "ФОРМА ЛОГИН/СНИЛС"}
 
-    for row in dataframe.itertuples():
-        auth_type[json.loads(row.info)["authsource"]] += 1
-    return auth_type
+    df[Config.Const.auth_type] = df[Config.Const.auth_type].map(
+        lambda x: to_human_info[json.loads(x)["authsource"]]
+    )
+    df[Config.Const.viewing_time] = df[Config.Const.viewing_time].map(
+        lambda x: parse(x).strftime(Config.Const.time_type)
+    )
+
+    statistics = {key: 0 for key in to_human_info.values()}
+    for row in dataframe.to_dict(orient="records"):
+        statistics[row[Config.Const.auth_type]] += 1
+    return statistics
 
 
 def create_graph(service_data):
     total = sum(service_data.values())
 
     percentages = [value / total * 100 for value in service_data.values()]
-    keys = [TO_HUMAN_INFO[key] for key in service_data.keys()]
-    plt.bar(keys, percentages)
-    plt.bar_label(plt.bar(keys, service_data.values()),
-                  labels=[f'{p:.1f}% ({v})' for p, v in zip(percentages, service_data.values())])
+    plt.bar(service_data.keys(), percentages)
+    plt.bar_label(
+        plt.bar(service_data.keys(), service_data.values()),
+        labels=[f"{p:.1f}% ({v})" for p, v in zip(percentages, service_data.values())],
+    )
 
-    plt.title('Процентное соотношение')
+    plt.title("Процентное соотношение")
 
     plt.savefig("./plot.png")
     plt.show()
 
 
 if __name__ == "__main__":
-    df = create_df()
-    data = get_data(df)
+    if "dev" in os.environ:
+        df = create_df_from_file()
+    elif "prod" in os.environ:
+        df = create_df_from_db()
+    else:
+        raise Exception("Don't load .env")
+    data = get_statistics_and_change_df(df)
     create_graph(data)
     create_excel(df)

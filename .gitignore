@@ -1,2 +1,4 @@
-./survey.psql
+./solve/survey.psql
 .idea
+./solve/.env
+./solve/__pycache__/
