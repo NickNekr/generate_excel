@@ -1,7 +1,6 @@
 import os
 from dateutil.parser import parse
 import pandas as pd
-from sqlalchemy import create_engine
 from openpyxl.styles import Alignment
 from io import StringIO
 from openpyxl.drawing.image import Image

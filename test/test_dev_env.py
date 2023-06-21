@@ -36,7 +36,6 @@ Base.metadata.create_all(engine)
 
 def create_df_from_file():
     dump_file = "../survey.psql"
-    to_human_info = {"localhostservice": "АРМ", "emiasdb": "ФОРМА ЛОГИН/СНИЛС"}
 
     with open(dump_file, "r") as file:
         dump_content = file.read()
@@ -44,7 +43,7 @@ def create_df_from_file():
         line for line in dump_content.splitlines() if line and line[0].isdigit()
     )
 
-    df = pd.read_csv(
+    dataframe = pd.read_csv(
         StringIO(cleaned_content),
         sep="\t",
         usecols=[1, 2, 3, 4, 5],
@@ -57,12 +56,12 @@ def create_df_from_file():
         ],
     )
 
-    return df
+    return dataframe
 
 
-def add_data(df):
+def add_data(dataframe):
     surveys = []
-    for el in df.to_dict(orient="records"):
+    for el in dataframe.to_dict(orient="records"):
         surveys.append(SecuritySurvey(el))
 
     session.add_all(surveys)
