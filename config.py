@@ -33,6 +33,7 @@ class Config:
         offset = 5
         prod = "production"
         dev = "development"
+        query = "SELECT userid, emiaslogin, info, created_at FROM security_survey;"
 
 
 class Appication:

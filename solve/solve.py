@@ -1,12 +1,12 @@
 import os
 from dateutil.parser import parse
 import pandas as pd
-import psycopg2
+from sqlalchemy import create_engine
 from openpyxl.styles import Alignment
 from io import StringIO
 from openpyxl.drawing.image import Image
 import matplotlib.pyplot as plt
-from config import Config
+from config import Config, Appication
 import json
 
 
@@ -33,27 +33,20 @@ def create_df_from_file():
 
 
 def create_df_from_db():
-    with psycopg2.connect(
-        host=Config.DataBase.HOST,
-        user=Config.DataBase.USERNAME,
-        password=Config.DataBase.PASSWORD,
-        dbname=Config.DataBase.DB,
-    ) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT userid, emiaslogin, info, created_at FROM security_survey;"
-            )
-            rows = cur.fetchall()
-            df = pd.DataFrame(
-                rows,
-                columns=[
-                    Config.Const.user_id,
-                    Config.Const.login,
-                    Config.Const.auth_type,
-                    Config.Const.viewing_time,
-                ],
-                dtype=str,
-            )
+    df = pd.read_sql(
+        Config.Const.query,
+        Appication.SQLALCHEMY_DATABASE_URI,
+        dtype=str,
+    )
+    df.rename(
+        columns={
+            "userid": Config.Const.user_id,
+            "emiaslogin": Config.Const.login,
+            "info": Config.Const.auth_type,
+            "created_at": Config.Const.viewing_time,
+        },
+        inplace=True,
+    )
     return df
 
 
