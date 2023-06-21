@@ -20,7 +20,7 @@ class SecuritySurvey(Base):
     userid = Column(Integer, default=0, nullable=False)
     emiaslogin = Column(String(255), default="", nullable=False)
     fingerprint = Column(String(255), default="", nullable=False)
-    info = Column(String(255), default={}, nullable=False)
+    info = Column(JSON, default={'{}'}, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.now, nullable=False)
 
     def __init__(self, data):

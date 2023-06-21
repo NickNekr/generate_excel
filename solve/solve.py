@@ -1,16 +1,26 @@
-import os
 from dateutil.parser import parse
+import sys
 import pandas as pd
 from openpyxl.styles import Alignment
 from io import StringIO
 from openpyxl.drawing.image import Image
 import matplotlib.pyplot as plt
-from config import Config, Appication
+from config import Config, Production, Development
 import json
 
 
+def create_df():
+    if Config.ENV == "development":
+        df = create_df_from_file()
+    elif Config.ENV == "production":
+        df = create_df_from_db()
+    else:
+        raise Exception("Set dev or prod env!")
+    return df
+
+
 def create_df_from_file():
-    with open(Config.Const.dump_file, "r") as file:
+    with open(Development.Const.dump_file, "r") as file:
         dump_content = file.read()
     cleaned_content = "\n".join(
         line for line in dump_content.splitlines() if line and line[0].isdigit()
@@ -33,9 +43,9 @@ def create_df_from_file():
 
 def create_df_from_db():
     df = pd.read_sql(
-        Config.Const.query,
-        Appication.SQLALCHEMY_DATABASE_URI,
-        dtype=str,
+        Production.Const.query,
+        Production.DataBase.SQLALCHEMY_DATABASE_URI,
+        dtype={"created_at": str},
     )
     df.rename(
         columns={
@@ -68,9 +78,21 @@ def create_excel(dataframe):
 def get_statistics_and_change_df(dataframe):
     to_human_info = {"localhostservice": "АРМ", "emiasdb": "ФОРМА ЛОГИН/СНИЛС"}
 
-    dataframe[Config.Const.auth_type] = dataframe[Config.Const.auth_type].map(
-        lambda x: to_human_info[json.loads(x.replace("'", '"'))["authsource"]]
-    )
+    try:
+        dataframe[Config.Const.auth_type] = dataframe[Config.Const.auth_type].map(
+            lambda x: to_human_info[x["authsource"]]
+        )
+    except Exception as ex:
+        print(
+            f"read_sql/read_csv parse 'info' table as str, not dict/json: ",
+            ex,
+            "\nContinue parsing...",
+            file=sys.stderr,
+        )
+        dataframe[Config.Const.auth_type] = dataframe[Config.Const.auth_type].map(
+            lambda x: to_human_info[json.loads(x.replace("'", '"'))["authsource"]]
+        )
+
     dataframe[Config.Const.viewing_time] = dataframe[Config.Const.viewing_time].map(
         lambda x: parse(x).strftime(Config.Const.time_type)
     )
@@ -98,12 +120,7 @@ def create_graph(service_data):
 
 
 def main():
-    if os.environ.get("FLASK_ENV") == "development":
-        df = create_df_from_file()
-    elif os.environ.get("FLASK_ENV") == "production":
-        df = create_df_from_db()
-    else:
-        raise Exception("Didn't load the enviroment")
+    df = create_df()
     data = get_statistics_and_change_df(df)
     create_graph(data)
     create_excel(df)
