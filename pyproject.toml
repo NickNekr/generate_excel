@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "gamgling"
+name = "gen_excel"
 version = "0.1.0"
 description = ""
 authors = ["Николай Некрасов <nnnekrasov@edu.hse.ru>"]
@@ -12,6 +12,7 @@ openpyxl = "^3.1.2"
 matplotlib = "^3.7.1"
 sqlalchemy = "^2.0.16"
 python-dotenv = "^1.0.0"
+psycopg2 = "^2.9.6"
 
 
 [build-system]

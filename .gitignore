@@ -2,5 +2,6 @@ survey.psql
 .idea
 .env
 solve/__pycache__/
+__pycache__/
 *.xlsx
 *.png

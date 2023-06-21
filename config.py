@@ -10,6 +10,7 @@ assert load_dotenv(
                                 DB_NAME=
                                 DB_HOST=
                                 DB_PORT=
+                                FLASK_ENV=
                                 """
 
 

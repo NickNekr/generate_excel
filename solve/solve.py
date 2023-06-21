@@ -69,7 +69,7 @@ def get_statistics_and_change_df(dataframe):
     to_human_info = {"localhostservice": "АРМ", "emiasdb": "ФОРМА ЛОГИН/СНИЛС"}
 
     dataframe[Config.Const.auth_type] = dataframe[Config.Const.auth_type].map(
-        lambda x: to_human_info[json.loads(x)["authsource"]]
+        lambda x: to_human_info[json.loads(x.replace("'", '"'))["authsource"]]
     )
     dataframe[Config.Const.viewing_time] = dataframe[Config.Const.viewing_time].map(
         lambda x: parse(x).strftime(Config.Const.time_type)
