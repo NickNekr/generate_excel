@@ -35,7 +35,7 @@ Base.metadata.create_all(engine)
 
 
 def create_df_from_file():
-    dump_file = "./survey.psql"
+    dump_file = "../survey.psql"
     to_human_info = {"localhostservice": "АРМ", "emiasdb": "ФОРМА ЛОГИН/СНИЛС"}
 
     with open(dump_file, "r") as file:

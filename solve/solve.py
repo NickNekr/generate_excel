@@ -52,8 +52,8 @@ def create_df_from_db():
                     Config.Const.auth_type,
                     Config.Const.viewing_time,
                 ],
+                dtype=str,
             )
-            df[Config.Const.viewing_time] = df[Config.Const.viewing_time].astype(str)
     return df
 
 
@@ -76,10 +76,10 @@ def create_excel(dataframe):
 def get_statistics_and_change_df(dataframe):
     to_human_info = {"localhostservice": "АРМ", "emiasdb": "ФОРМА ЛОГИН/СНИЛС"}
 
-    df[Config.Const.auth_type] = df[Config.Const.auth_type].map(
+    dataframe[Config.Const.auth_type] = dataframe[Config.Const.auth_type].map(
         lambda x: to_human_info[json.loads(x)["authsource"]]
     )
-    df[Config.Const.viewing_time] = df[Config.Const.viewing_time].map(
+    dataframe[Config.Const.viewing_time] = dataframe[Config.Const.viewing_time].map(
         lambda x: parse(x).strftime(Config.Const.time_type)
     )
 
@@ -105,13 +105,17 @@ def create_graph(service_data):
     plt.show()
 
 
-if __name__ == "__main__":
-    if "dev" in os.environ:
+def main():
+    if os.environ.get("FLASK_ENV") == "development":
         df = create_df_from_file()
-    elif "prod" in os.environ:
+    elif os.environ.get("FLASK_ENV") == "production":
         df = create_df_from_db()
     else:
-        raise Exception("Don't load .env")
+        raise Exception("Didn't load the enviroment")
     data = get_statistics_and_change_df(df)
     create_graph(data)
     create_excel(df)
+
+
+if __name__ == "__main__":
+    main()

@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 
 assert load_dotenv(
-    ".env"
+    "../.env"
 ), """Can't load the environment:(
                                 Set in .env file: 
                                 DB_USER=
@@ -26,11 +26,13 @@ class Config:
         user_id = "ID ПОЛЬЗОВАТЕЛЯ"
         auth_type = "ТИП АВТОРИЗАЦИИ"
         viewing_time = "ВРЕМЯ ПРОСМОТРА"
-        dump_file = "./survey.psql"
-        output_excel_file = "./output.xlsx"
-        output_png_file = "./plot.png"
+        dump_file = "../survey.psql"
+        output_excel_file = "output.xlsx"
+        output_png_file = "plot.png"
         time_type = "%Y-%m-%d %H:%M"
         offset = 5
+        prod = "production"
+        dev = "development"
 
 
 class Appication:
